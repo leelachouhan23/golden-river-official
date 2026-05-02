@@ -1,0 +1,63 @@
+<svg width="260" height="70" viewBox="0 0 260 70" xmlns="http://www.w3.org/2000/svg">
+
+  <style>
+    .text-main {
+      font-family: 'Times New Roman', serif;
+      font-size: 18px;
+      letter-spacing: 6px;
+      fill: #EAD9A0;
+      opacity: 0;
+      animation: fadeUp 1.2s ease forwards;
+      animation-delay: 0.4s;
+    }
+
+    .text-sub {
+      font-family: Arial, sans-serif;
+      font-size: 8px;
+      letter-spacing: 8px;
+      fill: #EAD9A0;
+      opacity: 0;
+      animation: fadeUp 1.2s ease forwards;
+      animation-delay: 0.8s;
+    }
+
+    .line {
+      stroke: #EAD9A0;
+      stroke-width: 1;
+      stroke-dasharray: 200;
+      stroke-dashoffset: 200;
+      animation: drawLine 1s ease forwards;
+    }
+
+    @keyframes fadeUp {
+      0% {
+        opacity: 0;
+        transform: translateY(10px);
+      }
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes drawLine {
+      to {
+        stroke-dashoffset: 0;
+      }
+    }
+  </style>
+
+  <!-- Line animation -->
+  <line x1="40" y1="35" x2="220" y2="35" class="line"></line>
+
+  <!-- Main text -->
+  <text x="50%" y="28" text-anchor="middle" class="text-main">
+    GOLDEN RIVER
+  </text>
+
+  <!-- Subtitle -->
+  <text x="50%" y="52" text-anchor="middle" class="text-sub">
+    PERFUME
+  </text>
+
+</svg>
