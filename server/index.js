@@ -1,5 +1,5 @@
 // ============================================================
-// Golden River Perfume — Express Backend (FINAL CLEAN)
+// Golden River Perfume — Express Backend (FINAL ALL-IN-ONE)
 // ============================================================
 require('dotenv').config();
 
@@ -16,7 +16,7 @@ const contactRoutes = require('./routes/contact');
 const app  = express();
 const PORT = process.env.PORT || 5000;
 
-// ✅ FIX: trust proxy
+// ✅ trust proxy
 app.set('trust proxy', 1);
 
 // ─── Middleware ─────────────────────────
@@ -25,9 +25,17 @@ app.use(morgan('dev'));
 app.use(express.json({ limit: '10kb' }));
 app.use(express.urlencoded({ extended: true }));
 
+// 🔥 Ignore React hot-update error
+app.use((req, res, next) => {
+  if (req.url.includes('hot-update')) {
+    return res.status(204).end();
+  }
+  next();
+});
+
 // ─── CORS ─────────────────────────
 app.use(cors({
-  origin: true,
+  origin: process.env.FRONTEND_URL,
   credentials: true,
 }));
 
@@ -42,14 +50,13 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB error:', err.message));
 
-// ─── Order Schema (ONLY ONE — FIXED) ─────────────────────────
+// ─── ORDER SCHEMA ─────────────────────────
 const orderSchema = new mongoose.Schema({
   orderId: String,
   name: String,
   email: String,
   address: String,
   phone: String,
-
   productId: Number,
   productName: String,
   size: String,
@@ -60,7 +67,7 @@ const orderSchema = new mongoose.Schema({
 
 const Order = mongoose.model('Order', orderSchema);
 
-// ─── Email Setup ─────────────────────────
+// ─── EMAIL SETUP ─────────────────────────
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
@@ -69,7 +76,16 @@ const transporter = nodemailer.createTransport({
   },
 });
 
-// ─── Routes ─────────────────────────
+// 🔥 Verify Email
+transporter.verify((err) => {
+  if (err) {
+    console.error("❌ Email config error:", err.message);
+  } else {
+    console.log("📧 Email server ready");
+  }
+});
+
+// ─── ROUTES ─────────────────────────
 
 // ROOT
 app.get('/', (req, res) => {
@@ -84,23 +100,45 @@ app.get('/api/health', (req, res) => {
 // CONTACT
 app.use('/api/contact', contactRoutes);
 
-// ✅ ORDER ROUTE (CLEAN FIXED)
+// ─── ORDER ROUTE (FULL WORKING) ─────────────────────────
 app.post('/api/order', async (req, res) => {
   try {
-    console.log("📥 Order:", req.body);
+    console.log("📥 Order Request:", req.body);
 
-    // ✅ Generate Order ID (important fix)
+    const {
+      name,
+      email,
+      address,
+      phone,
+      productName,
+      price,
+      size,
+      image
+    } = req.body;
+
+    // 🔥 VALIDATION
+    if (!name || !email || !productName) {
+      return res.status(400).json({
+        success: false,
+        message: "Missing required fields"
+      });
+    }
+
+    // 🔥 CREATE ORDER
     const orderData = {
       ...req.body,
       orderId: "GR-" + Date.now(),
     };
 
-    // ✅ Save in DB
     const order = await Order.create(orderData);
+    console.log("📦 Order Saved:", order.orderId);
 
-    // ✅ Send Email
+    // 🔥 SEND EMAIL
     try {
+      console.log("📧 Sending email to:", order.email);
+
       await transporter.sendMail({
+        from: `"Golden River" <${process.env.EMAIL_USER}>`,
         to: order.email,
         subject: "Order Confirmation — Golden River",
         html: `
@@ -109,7 +147,7 @@ app.post('/api/order', async (req, res) => {
           <h2 style="text-align:center;">GOLDEN RIVER</h2>
 
           <p>Hello ${order.name},</p>
-          <p>Your order has been placed successfully.</p>
+          <p>Your order has been placed successfully 🎉</p>
 
           <div style="border:1px solid #ddd;padding:15px;margin-top:20px;">
             
@@ -119,7 +157,7 @@ app.post('/api/order', async (req, res) => {
             <h3 style="text-align:center;">${order.productName}</h3>
 
             <p style="text-align:center;">Size: ${order.size}</p>
-            <p style="text-align:center;">Price: $${order.price}</p>
+            <p style="text-align:center;">Price: ₹${order.price}</p>
 
             <p style="text-align:center;font-size:12px;color:#777;">
               Order ID: ${order.orderId}
@@ -133,21 +171,33 @@ app.post('/api/order', async (req, res) => {
           </div>
 
           <p style="margin-top:20px;font-size:12px;color:#888;">
-            Thank you for shopping with us ✨
+            Thank you for shopping with Golden River ✨
           </p>
 
         </div>
         `
       });
+
+      console.log("✅ Email sent");
+
     } catch (emailErr) {
-      console.warn("⚠️ Email failed:", emailErr.message);
+      console.warn("⚠️ Email failed BUT order saved:", emailErr.message);
     }
 
-    res.json({ success: true, order });
+    // 🔥 RESPONSE
+    res.json({
+      success: true,
+      message: "Order placed successfully 🎉",
+      order
+    });
 
   } catch (err) {
     console.error("❌ ORDER ERROR:", err.message);
-    res.status(500).json({ success: false, error: err.message });
+
+    res.status(500).json({
+      success: false,
+      message: "Server error"
+    });
   }
 });
 
@@ -156,13 +206,13 @@ app.use((req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-// ─── Error Handler ─────────────────────────
+// ─── ERROR HANDLER ─────────────────────────
 app.use((err, req, res, next) => {
   console.error('Server Error:', err.message);
   res.status(500).json({ success: false });
 });
 
-// ─── Start Server ─────────────────────────
+// ─── START SERVER ─────────────────────────
 app.listen(PORT, () => {
   console.log(`\n🚀 Server running on http://localhost:${PORT}`);
 });
