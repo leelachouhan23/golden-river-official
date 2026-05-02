@@ -64,8 +64,7 @@ const ProductCard = ({ product }) => {
 
       console.log("📤 Sending:", payload);
 
-      const res = await fetch('http://localhost:5000/api/order', {
-        method: 'POST',
+const res = await fetch(`${import.meta.env.VITE_API_URL}/api/order`, {        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
