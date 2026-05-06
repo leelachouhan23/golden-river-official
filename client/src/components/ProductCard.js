@@ -3,6 +3,10 @@ import { ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import toast from 'react-hot-toast';
 
+// TODO: Update this URL if you deploy your backend to Render or another host
+// ✅ Correct for Vite
+const API_URL = import.meta.env.VITE_API_URL || 'https://golden-river-perfume-api.onrender.com';
+
 const ProductCard = ({ product }) => {
   const { addItem } = useCart();
 
@@ -64,7 +68,8 @@ const ProductCard = ({ product }) => {
 
       console.log("📤 Sending:", payload);
 
-      const res = await fetch(`${process.env.REACT_APP_API_URL}/api/order`, {
+      const res = await fetch(`${API_URL}/api/order`, {
+        method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(payload),
       });
@@ -97,7 +102,6 @@ const ProductCard = ({ product }) => {
       setLoading(false);
     }
   };
-
   return (
     <>
       <div className="group relative bg-charcoal-800 border border-charcoal-700 hover:border-gold-600/40 transition-all duration-500 hover:-translate-y-1 flex flex-col">
@@ -115,7 +119,6 @@ const ProductCard = ({ product }) => {
             className="w-full h-full object-cover"
           />
         </div>
-
         {/* CONTENT */}
         <div className="p-5 flex flex-col flex-1">
           <h3 className="text-lg text-white">{product.name}</h3>

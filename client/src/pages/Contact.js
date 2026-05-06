@@ -4,7 +4,7 @@ import toast from 'react-hot-toast';
 
 // TODO: Update this URL if you deploy your backend to Render or another host
 // ✅ Correct for Vite
-  const API_URL = import.meta.env.VITE_API_URL || 'https://golden-river-backend.onrender.com';const Contact = () => {
+  const API_URL = import.meta.env.VITE_API_URL || 'https://golden-river-perfume-api.onrender.com';const Contact = () => {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [loading, setLoading]   = useState(false);
   const [submitted, setSubmitted] = useState(false);
