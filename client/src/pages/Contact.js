@@ -4,7 +4,9 @@ import toast from 'react-hot-toast';
 
 // TODO: Update this URL if you deploy your backend to Render or another host
 // ✅ Correct for Vite
-  const API_URL = import.meta.env.VITE_API_URL || 'https://golden-river-perfume-api.onrender.com';const Contact = () => {
+const API_URL = process.env.REACT_APP_API_URL || "https://golden-river-backend.onrender.com";
+ console.log("API URL:", API_URL);
+const Contact = () => {
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
   const [loading, setLoading]   = useState(false);
   const [submitted, setSubmitted] = useState(false);
@@ -187,19 +189,25 @@ import toast from 'react-hot-toast';
                     </div>
                   </div>
 
-                  <div className="mb-5">
-                    <label className="block font-body text-xs uppercase tracking-widest text-cream-200/50 mb-2">
-                      Subject
-                    </label>
-                    <input
-                      type="text"
-                      name="subject"
-                      value={form.subject}
-                      onChange={handleChange}
-                      placeholder="What is this about?"
-                      className="input-field"
-                    />
-                  </div>
+               <div className="mb-5">
+                <label className="block font-body text-xs uppercase tracking-widest text-cream-200/50 mb-2">
+                  Subject *
+                </label>
+
+                <select
+                  name="subject"
+                  value={form.subject}
+                  onChange={handleChange}
+                  className="input-field"
+                  required
+                >
+                  <option value="">Select Subject</option>
+                  <option value="feedback">Feedback</option>
+                  <option value="enquiry">Enquiry</option>
+                  <option value="support">Support</option>
+                  <option value="order">Order Issue</option>
+                </select>
+              </div>
 
                   <div className="mb-8">
                     <label className="block font-body text-xs uppercase tracking-widest text-cream-200/50 mb-2">
@@ -215,7 +223,6 @@ import toast from 'react-hot-toast';
                       required
                     />
                   </div>
-
                   <button
                     type="submit"
                     disabled={loading}

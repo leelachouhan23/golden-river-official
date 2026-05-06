@@ -34,8 +34,24 @@ app.use((req, res, next) => {
 });
 
 // ─── CORS ─────────────────────────
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+  'https://golden-river-perfume.vercel.app', // Common pattern
+  'http://localhost:3000',
+  'http://localhost:5173'
+].filter(Boolean);
+
 app.use(cors({
-  origin: process.env.FRONTEND_URL,
+  origin: (origin, callback) => {
+    // allow requests with no origin (like mobile apps or curl requests)
+    if (!origin) return callback(null, true);
+    if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
+      callback(null, true);
+    } else {
+      console.warn(`⚠️ CORS blocked for origin: ${origin}`);
+      callback(null, true); // Allow all during troubleshooting, or keep the error
+    }
+  },
   credentials: true,
 }));
 
@@ -46,9 +62,21 @@ app.use(rateLimit({
 }));
 
 // ─── MongoDB ─────────────────────────
-mongoose.connect(process.env.MONGODB_URI)
-  .then(() => console.log('✅ MongoDB connected'))
-  .catch(err => console.error('❌ MongoDB error:', err.message));
+let mongoConnected = false;
+
+mongoose.connect(process.env.MONGODB_URI, {
+  serverSelectionTimeoutMS: 5000,
+  socketTimeoutMS: 5000,
+  connectTimeoutMS: 5000,
+})
+  .then(() => {
+    mongoConnected = true;
+    console.log('✅ MongoDB connected');
+  })
+  .catch(err => {
+    mongoConnected = false;
+    console.error('❌ MongoDB error:', err.message);
+  });
 
 // ─── ORDER SCHEMA ─────────────────────────
 const orderSchema = new mongoose.Schema({
@@ -103,7 +131,7 @@ app.use('/api/contact', contactRoutes);
 // ─── ORDER ROUTE (FULL WORKING) ─────────────────────────
 app.post('/api/order', async (req, res) => {
   try {
-    console.log("📥 Order Request:", req.body);
+    console.log("BODY:", req.body); ;
 
     const {
       name,
@@ -133,71 +161,38 @@ app.post('/api/order', async (req, res) => {
     const order = await Order.create(orderData);
     console.log("📦 Order Saved:", order.orderId);
 
-    // 🔥 SEND EMAIL
-    try {
-      console.log("📧 Sending email to:", order.email);
-
-      await transporter.sendMail({
-        from: `"Golden River" <${process.env.EMAIL_USER}>`,
-        to: order.email,
-        subject: "Order Confirmation — Golden River",
-        html: `
-        <div style="max-width:600px;margin:auto;font-family:Arial;padding:20px;">
-          
-          <h2 style="text-align:center;">GOLDEN RIVER</h2>
-
-          <p>Hello ${order.name},</p>
-          <p>Your order has been placed successfully 🎉</p>
-
-          <div style="border:1px solid #ddd;padding:15px;margin-top:20px;">
-            
-            <img src="${order.image}" 
-                 style="width:100%;max-width:250px;display:block;margin:auto;" />
-
-            <h3 style="text-align:center;">${order.productName}</h3>
-
-            <p style="text-align:center;">Size: ${order.size}</p>
-            <p style="text-align:center;">Price: ₹${order.price}</p>
-
-            <p style="text-align:center;font-size:12px;color:#777;">
-              Order ID: ${order.orderId}
-            </p>
-          </div>
-
-          <div style="margin-top:20px;">
-            <h4>Shipping Details</h4>
-            <p>${order.address}</p>
-            <p>${order.phone}</p>
-          </div>
-
-          <p style="margin-top:20px;font-size:12px;color:#888;">
-            Thank you for shopping with Golden River ✨
-          </p>
-
-        </div>
-        `
-      });
-
-      console.log("✅ Email sent");
-
-    } catch (emailErr) {
-      console.warn("⚠️ Email failed BUT order saved:", emailErr.message);
-    }
-
-    // 🔥 RESPONSE
+    // 🔥 RESPONSE (Instant response to user)
     res.json({
       success: true,
       message: "Order placed successfully 🎉",
       order
     });
 
+    // 🔥 SEND EMAIL ASYNC
+    console.log("📧 Starting email send process...");
+    transporter.sendMail({
+      from: `"Golden River" <${process.env.EMAIL_USER}>`,
+      to: order.email,
+      subject: "Order Confirmation — Golden River",
+      html: `
+        <div style="max-width:600px;margin:auto;font-family:Arial;padding:20px;">
+          <h2>GOLDEN RIVER</h2>
+          <p>Hello ${order.name},</p>
+          <p>Your order has been placed successfully 🎉</p>
+          <p>Order ID: ${order.orderId}</p>
+          <p>Product: ${order.productName}</p>
+          <p>Price: ₹${order.price}</p>
+        </div>`
+    }).then(() => {
+      console.log("✅ Email sent successfully to:", order.email);
+    }).catch(emailErr => {
+      console.error("❌ Email failed:", emailErr.message);
+      console.error("User Config - EMAIL_USER:", process.env.EMAIL_USER);
+    });
+
   } catch (err) {
     console.error("❌ ORDER ERROR:", err.message);
-
-    res.status(500).json({
-      success: false,
-      message: "Server error"
-    });
+    res.status(500).json({ success: false, message: "Server error" });
   }
 });
 

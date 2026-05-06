@@ -9,16 +9,16 @@ const { sendAdminNotification, sendAutoReply } = require('../services/emailServi
 // Rate limiter: max 5 contact form submissions per hour per IP
 const contactLimiter = rateLimit({
   windowMs: 60 * 60 * 1000, // 1 hour
-  max: 5,
+  max: 20,
   message: { success: false, message: 'Too many submissions. Please try again later.' },
 });
-
+const SUBJECT_OPTIONS = ['feedback', 'enquiry', 'support', 'order'];
 // Validation rules
 const contactValidation = [
-  body('name').trim().notEmpty().withMessage('Name is required').isLength({ max: 100 }),
+  body('name').trim().notEmpty().withMessage('Name is required').isLength({ max: 20 }),
   body('email').isEmail().withMessage('Valid email is required').normalizeEmail(),
-  body('message').trim().notEmpty().withMessage('Message is required').isLength({ min: 10, max: 2000 }),
-  body('subject').optional().trim().isLength({ max: 200 }),
+  body('message').trim().notEmpty().withMessage('Message is required').isLength({ min: 3, max: 2000 }),
+  body('subject').optional().trim().isIn(SUBJECT_OPTIONS).withMessage('Invalid subject selected').isLength({ max: 20 }),
 ];
 
 // ─── POST /api/contact ──────────────────────────────────────────────────
@@ -68,7 +68,7 @@ router.post('/', contactLimiter, contactValidation, async (req, res) => {
           console.error('Auto-reply failed:', err.message)
         )
       );
-      await Promise.allSettled(emailPromises);
+     Promise.allSettled(emailPromises);
     } else {
       console.log('⚠️  Email not configured — skipping email send. Check .env file.');
     }

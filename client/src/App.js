@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { Toaster } from 'react-hot-toast';
-
+import { useEffect } from 'react';
 import { CartProvider } from './context/CartContext';
 import Navbar      from './components/Navbar';
 import Footer      from './components/Footer';
@@ -15,7 +15,13 @@ import Contact  from './pages/Contact';
 
 function App() {
   const [cartOpen, setCartOpen] = useState(false);
+      useEffect(() => {
+        const interval = setInterval(() => {
+          fetch("https://golden-river-backend.onrender.com/api/health");
+        }, 5 * 60 * 1000); // every 5 min
 
+        return () => clearInterval(interval);
+      }, []);
   return (
     <CartProvider>
       <Router>

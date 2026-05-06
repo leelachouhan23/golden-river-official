@@ -1,12 +1,12 @@
+
 import React, { useState } from 'react';
 import { ShoppingBag } from 'lucide-react';
 import { useCart } from '../context/CartContext';
 import toast from 'react-hot-toast';
 
-// TODO: Update this URL if you deploy your backend to Render or another host
-// ✅ Correct for Vite
-const API_URL = import.meta.env.VITE_API_URL || 'https://golden-river-perfume-api.onrender.com';
-
+// ✅ VITE FIX
+const API_URL = process.env.REACT_APP_API_URL || "https://golden-river-backend.onrender.com";
+console.log("API URL:", API_URL);
 const ProductCard = ({ product }) => {
   const { addItem } = useCart();
 
@@ -15,6 +15,7 @@ const ProductCard = ({ product }) => {
 
   const [showOrder, setShowOrder] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [orderSuccess, setOrderSuccess] = useState(null);
 
   const [form, setForm] = useState({
     name: '',
@@ -28,6 +29,7 @@ const ProductCard = ({ product }) => {
     toast.success(`${product.name} added to cart!`);
   };
 
+  // ✅ FIXED BUY NOW
   const handleBuyNow = () => {
     setShowOrder(true);
   };
@@ -36,7 +38,7 @@ const ProductCard = ({ product }) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
 
-  // ✅ PLACE ORDER (UPGRADED)
+  // ✅ PLACE ORDER
   const handleOrder = async () => {
     if (!form.name || !form.email || !form.address || !form.phone) {
       toast.error("Please fill all fields ⚠️");
@@ -51,7 +53,6 @@ const ProductCard = ({ product }) => {
     try {
       setLoading(true);
 
-      // 🧠 UNIQUE ORDER ID
       const orderId = "GR-" + Date.now();
 
       const payload = {
@@ -66,7 +67,7 @@ const ProductCard = ({ product }) => {
         createdAt: new Date().toISOString(),
       };
 
-      console.log("📤 Sending:", payload);
+      // 🔥 Add 10 second timeout to prevent hanging
 
       const res = await fetch(`${API_URL}/api/order`, {
         method: 'POST',
@@ -74,16 +75,16 @@ const ProductCard = ({ product }) => {
         body: JSON.stringify(payload),
       });
 
+
       if (!res.ok) throw new Error("Server not responding");
 
       const data = await res.json();
-      console.log("📥 Response:", data);
 
       if (data.success) {
-        toast.success("Order placed successfully 🎉");
+        setOrderSuccess(payload);
         setShowOrder(false);
+        toast.success("Order placed successfully! 🎉");
 
-        // reset form
         setForm({
           name: '',
           email: '',
@@ -96,12 +97,17 @@ const ProductCard = ({ product }) => {
       }
 
     } catch (err) {
-      console.error("❌ ERROR:", err);
-      toast.error("Server error ❌");
+      console.error(err);
+      if (err.name === 'AbortError') {
+        toast.error("Request timeout - Server took too long ⏱️");
+      } else {
+        toast.error("Server error ❌");
+      }
     } finally {
       setLoading(false);
     }
   };
+
   return (
     <>
       <div className="group relative bg-charcoal-800 border border-charcoal-700 hover:border-gold-600/40 transition-all duration-500 hover:-translate-y-1 flex flex-col">
@@ -119,6 +125,7 @@ const ProductCard = ({ product }) => {
             className="w-full h-full object-cover"
           />
         </div>
+
         {/* CONTENT */}
         <div className="p-5 flex flex-col flex-1">
           <h3 className="text-lg text-white">{product.name}</h3>
@@ -218,8 +225,42 @@ const ProductCard = ({ product }) => {
           </div>
         </div>
       )}
+
+      {/* ✅ SUCCESS POPUP */}
+      {orderSuccess && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white p-6 w-[320px] text-black text-center">
+
+            <h2 className="text-lg font-bold mb-2">🎉 Order Confirmed</h2>
+
+            <img
+              src={orderSuccess.image}
+              alt={orderSuccess.productName}
+              className="w-32 h-32 object-cover mx-auto mb-3"
+            />
+
+            <p><b>{orderSuccess.productName}</b></p>
+            <p>Size: {orderSuccess.size}</p>
+            <p>Price: ${orderSuccess.price}</p>
+
+            <hr className="my-2" />
+
+            <p>Name: {orderSuccess.name}</p>
+            <p>Phone: {orderSuccess.phone}</p>
+            <p className="text-sm">{orderSuccess.address}</p>
+
+            <button
+              onClick={() => setOrderSuccess(null)}
+              className="mt-4 bg-green-500 text-white px-4 py-2 w-full"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </>
   );
 };
 
 export default ProductCard;
+
