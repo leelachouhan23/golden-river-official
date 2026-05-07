@@ -7,26 +7,24 @@ const Order = require('../models/Order');
 // ✅ Create transporter
 const transporter = nodemailer.createTransport({
   host: "smtp.gmail.com",
-  port: 465,
-  secure: true,
+  port: 587,
+  secure: false,
 
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
 
+  tls: {
+    rejectUnauthorized: false,
+  },
+
   connectionTimeout: 10000,
 });
+ 
 // ✅ Verify transporter
-transporter.verify((err, success) => {
-  if (err) {
-    console.log("❌ Email config error:", err.message);
-  } else {
-    console.log("📧 Email server ready");
-  }
-});
 
-// POST /api/order
+
 router.post('/', async (req, res) => {
   try {
 
