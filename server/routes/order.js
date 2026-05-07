@@ -6,13 +6,17 @@ const Order = require('../models/Order');
 
 // ✅ Create transporter
 const transporter = nodemailer.createTransport({
-  service: 'gmail',
+  host: "smtp.gmail.com",
+  port: 465,
+  secure: true,
+
   auth: {
     user: process.env.EMAIL_USER,
     pass: process.env.EMAIL_PASS,
   },
-});
 
+  connectionTimeout: 10000,
+});
 // ✅ Verify transporter
 transporter.verify((err, success) => {
   if (err) {
@@ -37,19 +41,7 @@ router.post('/', async (req, res) => {
 
     console.log("✅ Order saved");
 
-    // ✅ TEST EMAIL
-    console.log("📧 Sending test email...");
-
-    const testInfo = await transporter.sendMail({
-      from: process.env.EMAIL_USER,
-      to: "leelachouhan23@navgurukul.org",
-      subject: "Test Mail",
-      text: "Email working successfully"
-    });
-
-    console.log("✅ Test mail sent:", testInfo.response);
-
-    // ✅ USER EMAIL CHECK
+  
     console.log("USER EMAIL:", order.email);
 
     // ✅ SEND ORDER CONFIRMATION EMAIL
