@@ -1,35 +1,19 @@
 const express = require('express');
 const router = express.Router();
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
 const Order = require('../models/Order');
 
-// ✅ Create transporter
-const transporter = nodemailer.createTransport({
-  host: "smtp.gmail.com",
-  port: 587,
-  secure: false,
+const resend = new Resend(process.env.RESEND_API_KEY);
 
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-
-  tls: {
-    rejectUnauthorized: false,
-  },
-
-  connectionTimeout: 10000,
-});
- 
-// ✅ Verify transporter
-
-
+// POST /api/order
 router.post('/', async (req, res) => {
+
   try {
 
     console.log("📥 Order:", req.body);
 
+    // SAVE ORDER
     const order = new Order({
       ...req.body,
       orderId: "GR-" + Date.now()
@@ -39,20 +23,20 @@ router.post('/', async (req, res) => {
 
     console.log("✅ Order saved");
 
-  
-    console.log("USER EMAIL:", order.email);
-
-    // ✅ SEND ORDER CONFIRMATION EMAIL
+    // SEND EMAIL
     try {
 
-      const info = await transporter.sendMail({
-        from: `"Golden River" <${process.env.EMAIL_USER}>`,
+      const data = await resend.emails.send({
+
+        from: 'Golden River <onboarding@resend.dev>',
+
         to: order.email,
-        subject: "Your Order is Confirmed 🎉",
+
+        subject: 'Your Order is Confirmed 🎉',
 
         html: `
           <div style="font-family:Arial;padding:20px;max-width:600px;margin:auto;">
-            
+
             <h1 style="color:#d4a017;">
               Golden River Perfume
             </h1>
@@ -61,12 +45,10 @@ router.post('/', async (req, res) => {
 
             <p>Hello <b>${order.name}</b>,</p>
 
-            <p>
-              Your order has been confirmed successfully.
-            </p>
+            <p>Your order has been confirmed successfully.</p>
 
-            <img 
-              src="${order.image}" 
+            <img
+              src="${order.image}"
               alt="${order.productName}"
               style="width:200px;border-radius:10px;margin:20px 0;"
             />
@@ -81,23 +63,21 @@ router.post('/', async (req, res) => {
 
             <hr />
 
-            <p>
-              Thank you for shopping with Golden River ❤️
-            </p>
+            <p>Thank you for shopping with Golden River ❤️</p>
 
           </div>
         `
       });
 
-      console.log("✅ Email sent:", info.response);
+      console.log("✅ Email sent:", data);
 
     } catch (mailErr) {
 
-      console.log("❌ Mail Error:", mailErr.message);
+      console.log("❌ Mail Error:", mailErr);
 
     }
 
-    // ✅ RESPONSE
+    // RESPONSE
     res.status(201).json({
       success: true,
       message: "Order placed successfully",
@@ -107,12 +87,14 @@ router.post('/', async (req, res) => {
   } catch (err) {
 
     console.error("❌ FULL ERROR:", err);
+
     res.status(500).json({
       success: false,
       message: "Order failed",
     });
 
   }
+
 });
 
 module.exports = router;
