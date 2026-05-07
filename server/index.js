@@ -1,5 +1,5 @@
 // ============================================================
-// Golden River Perfume — Express Backend (FINAL ALL-IN-ONE)
+// Golden River Perfume — Express Backend (FIXED)
 // ============================================================
 require('dotenv').config();
 
@@ -9,9 +9,9 @@ const helmet     = require('helmet');
 const morgan     = require('morgan');
 const mongoose   = require('mongoose');
 const rateLimit  = require('express-rate-limit');
-const nodemailer = require('nodemailer');
 
 const contactRoutes = require('./routes/contact');
+const orderRoutes = require('./routes/order');
 
 const app  = express();
 const PORT = process.env.PORT || 5000;
@@ -36,20 +36,19 @@ app.use((req, res, next) => {
 // ─── CORS ─────────────────────────
 const allowedOrigins = [
   process.env.FRONTEND_URL,
-  'https://golden-river-perfume.vercel.app', // Common pattern
+  'https://golden-river-perfume.vercel.app',
   'http://localhost:3000',
   'http://localhost:5173'
 ].filter(Boolean);
 
 app.use(cors({
   origin: (origin, callback) => {
-    // allow requests with no origin (like mobile apps or curl requests)
     if (!origin) return callback(null, true);
     if (allowedOrigins.indexOf(origin) !== -1 || process.env.NODE_ENV === 'development') {
       callback(null, true);
     } else {
       console.warn(`⚠️ CORS blocked for origin: ${origin}`);
-      callback(null, true); // Allow all during troubleshooting, or keep the error
+      callback(null, true);
     }
   },
   credentials: true,
@@ -62,56 +61,9 @@ app.use(rateLimit({
 }));
 
 // ─── MongoDB ─────────────────────────
-let mongoConnected = false;
-
-mongoose.connect(process.env.MONGODB_URI, {
-  serverSelectionTimeoutMS: 5000,
-  socketTimeoutMS: 5000,
-  connectTimeoutMS: 5000,
-})
-  .then(() => {
-    mongoConnected = true;
-    console.log('✅ MongoDB connected');
-  })
-  .catch(err => {
-    mongoConnected = false;
-    console.error('❌ MongoDB error:', err.message);
-  });
-
-// ─── ORDER SCHEMA ─────────────────────────
-const orderSchema = new mongoose.Schema({
-  orderId: String,
-  name: String,
-  email: String,
-  address: String,
-  phone: String,
-  productId: Number,
-  productName: String,
-  size: String,
-  price: Number,
-  image: String,
-  category: String,
-}, { timestamps: true });
-
-const Order = mongoose.model('Order', orderSchema);
-
-// ─── EMAIL SETUP ─────────────────────────
-const transporter = nodemailer.createTransport({
-  service: 'gmail',
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS,
-  },
-});
-
-// 🔥 Verify Email
-transporter.verify((err) => {
-  if (err) {
-    console.error("❌ Email config error:", err.message);
-  } else {
-    console.log("📧 Email server ready");
-  }
-});
+mongoose.connect(process.env.MONGODB_URI)
+  .then(() => console.log('✅ MongoDB connected'))
+  .catch(err => console.error('❌ MongoDB error:', err.message));
 
 // ─── ROUTES ─────────────────────────
 
@@ -128,73 +80,8 @@ app.get('/api/health', (req, res) => {
 // CONTACT
 app.use('/api/contact', contactRoutes);
 
-// ─── ORDER ROUTE (FULL WORKING) ─────────────────────────
-app.post('/api/order', async (req, res) => {
-  try {
-    console.log("BODY:", req.body); ;
-
-    const {
-      name,
-      email,
-      address,
-      phone,
-      productName,
-      price,
-      size,
-      image
-    } = req.body;
-
-    // 🔥 VALIDATION
-    if (!name || !email || !productName) {
-      return res.status(400).json({
-        success: false,
-        message: "Missing required fields"
-      });
-    }
-
-    // 🔥 CREATE ORDER
-    const orderData = {
-      ...req.body,
-      orderId: "GR-" + Date.now(),
-    };
-
-    const order = await Order.create(orderData);
-    console.log("📦 Order Saved:", order.orderId);
-
-    // 🔥 RESPONSE (Instant response to user)
-    res.json({
-      success: true,
-      message: "Order placed successfully 🎉",
-      order
-    });
-
-    // 🔥 SEND EMAIL ASYNC
-    console.log("📧 Starting email send process...");
-    transporter.sendMail({
-      from: `"Golden River" <${process.env.EMAIL_USER}>`,
-      to: order.email,
-      subject: "Order Confirmation — Golden River",
-      html: `
-        <div style="max-width:600px;margin:auto;font-family:Arial;padding:20px;">
-          <h2>GOLDEN RIVER</h2>
-          <p>Hello ${order.name},</p>
-          <p>Your order has been placed successfully 🎉</p>
-          <p>Order ID: ${order.orderId}</p>
-          <p>Product: ${order.productName}</p>
-          <p>Price: ₹${order.price}</p>
-        </div>`
-    }).then(() => {
-      console.log("✅ Email sent successfully to:", order.email);
-    }).catch(emailErr => {
-      console.error("❌ Email failed:", emailErr.message);
-      console.error("User Config - EMAIL_USER:", process.env.EMAIL_USER);
-    });
-
-  } catch (err) {
-    console.error("❌ ORDER ERROR:", err.message);
-    res.status(500).json({ success: false, message: "Server error" });
-  }
-});
+// ORDER
+app.use('/api/order', orderRoutes);
 
 // ─── 404 ─────────────────────────
 app.use((req, res) => {

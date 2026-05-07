@@ -53,22 +53,27 @@ router.post('/', contactLimiter, contactValidation, async (req, res) => {
     const emailPromises = [];
 
     if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
+      console.log('📧 Attempting to send contact emails to:', email);
       emailPromises.push(
         sendAdminNotification({
           name,
           email,
           subject: subject || 'General Enquiry',
           message
-        }).catch(err =>
-          console.error('Admin email failed:', err.message)
-        )
+        })
+          .then(info => console.log('✅ Admin notification sent:', info.messageId))
+          .catch(err =>
+            console.error('❌ Admin email failed:', err.message)
+          )
       );
       emailPromises.push(
-        sendAutoReply({ name, email }).catch(err =>
-          console.error('Auto-reply failed:', err.message)
-        )
+        sendAutoReply({ name, email })
+          .then(info => console.log('✅ Auto-reply sent:', info.messageId))
+          .catch(err =>
+            console.error('❌ Auto-reply failed:', err.message)
+          )
       );
-     Promise.allSettled(emailPromises);
+      await Promise.allSettled(emailPromises);
     } else {
       console.log('⚠️  Email not configured — skipping email send. Check .env file.');
     }

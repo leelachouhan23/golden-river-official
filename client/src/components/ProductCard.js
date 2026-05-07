@@ -67,7 +67,7 @@ const ProductCard = ({ product }) => {
         createdAt: new Date().toISOString(),
       };
 
-      // 🔥 Add 10 second timeout to prevent hanging
+    
 
       const res = await fetch(`${API_URL}/api/order`, {
         method: 'POST',
