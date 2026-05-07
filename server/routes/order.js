@@ -36,24 +36,21 @@ router.post('/', async (req, res) => {
     await order.save();
 
     console.log("✅ Order saved");
-   
 
-
-
-      console.log("✅ Test mail sent:", info.response);
-      console.log("USER EMAIL:", order.email);
     // ✅ SEND EMAIL
     try {
-         
+
       const info = await transporter.sendMail({
+
         from: `"Golden River" <${process.env.EMAIL_USER}>`,
+
         to: order.email,
-      
+
         subject: "Your Order is Confirmed 🎉",
-          console.log("USER EMAIL:", order.email);
+
         html: `
-          <div style="font-family:Arial;padding:20px;">
-            
+          <div style="font-family:Arial;padding:20px;max-width:600px;margin:auto;">
+
             <h1 style="color:#d4a017;">
               Golden River Perfume
             </h1>
