@@ -116,8 +116,7 @@ router.post('/', async (req, res) => {
 
   } catch (err) {
 
-    console.error("❌ Error:", err.message);
-
+    console.error("❌ FULL ERROR:", err);
     res.status(500).json({
       success: false,
       message: "Order failed",
