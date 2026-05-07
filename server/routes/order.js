@@ -4,20 +4,28 @@ const nodemailer = require('nodemailer');
 
 const Order = require('../models/Order');
 
-// Create transporter with email credentials
-const createTransporter = () => {
-  return nodemailer.createTransport({
-    service: process.env.EMAIL_SERVICE || 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASS,
-    },
-  });
-};
+// ✅ Create transporter
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS,
+  },
+});
+
+// ✅ Verify transporter
+transporter.verify((err, success) => {
+  if (err) {
+    console.log("❌ Email config error:", err.message);
+  } else {
+    console.log("📧 Email server ready");
+  }
+});
 
 // POST /api/order
 router.post('/', async (req, res) => {
   try {
+
     console.log("📥 Order:", req.body);
 
     const order = new Order({
@@ -26,63 +34,80 @@ router.post('/', async (req, res) => {
     });
 
     await order.save();
+
     console.log("✅ Order saved");
 
-    // 📧 Send email (non-blocking — don't fail the order if email fails)
-    if (process.env.EMAIL_USER && process.env.EMAIL_PASS) {
-      const transporter = createTransporter();
-      console.log('📧 Attempting to send order email to:', order.email);
-      transporter.sendMail({
+    // ✅ TEST EMAIL
+    console.log("📧 Sending test email...");
+
+    const testInfo = await transporter.sendMail({
+      from: process.env.EMAIL_USER,
+      to: "leelachouhan23@navgurukul.org",
+      subject: "Test Mail",
+      text: "Email working successfully"
+    });
+
+    console.log("✅ Test mail sent:", testInfo.response);
+
+    // ✅ USER EMAIL CHECK
+    console.log("USER EMAIL:", order.email);
+
+    // ✅ SEND ORDER CONFIRMATION EMAIL
+    try {
+
+      const info = await transporter.sendMail({
         from: `"Golden River" <${process.env.EMAIL_USER}>`,
         to: order.email,
-        replyTo: process.env.EMAIL_USER,
-        subject: "Order Confirmation - Golden River Perfume",
+        subject: "Your Order is Confirmed 🎉",
+
         html: `
-          <div style="font-family: Georgia, serif; max-width: 600px; margin: 0 auto; background: #1a1813; color: #f8f4e8; padding: 40px; border: 1px solid #d4a017;">
-            <div style="text-align: center; margin-bottom: 30px;">
-              <h1 style="font-size: 28px; font-weight: 300; letter-spacing: 0.2em; color: #d4a017; text-transform: uppercase; margin: 0;">Golden River</h1>
-              <p style="font-size: 10px; letter-spacing: 0.4em; color: #f8f4e840; text-transform: uppercase;">Order Confirmation</p>
-            </div>
-            <p style="font-size: 16px; font-weight: 300; color: #f0e9cc; margin-bottom: 16px;">Dear ${order.name},</p>
-            <p style="color: #f8f4e8b0; line-height: 1.8; margin-bottom: 20px;">Thank you for your order! Here are the details:</p>
-            <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
-              <tr>
-                <td style="padding: 12px 0; color: #d4a017; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; border-bottom: 1px solid #25221840; width: 30%;">Order ID</td>
-                <td style="padding: 12px 0; color: #f8f4e8; font-size: 14px; border-bottom: 1px solid #25221840;">${order.orderId}</td>
-              </tr>
-              <tr>
-                <td style="padding: 12px 0; color: #d4a017; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; border-bottom: 1px solid #25221840;">Product</td>
-                <td style="padding: 12px 0; color: #f8f4e8; font-size: 14px; border-bottom: 1px solid #25221840;">${order.productName}</td>
-              </tr>
-              <tr>
-                <td style="padding: 12px 0; color: #d4a017; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; border-bottom: 1px solid #25221840;">Size</td>
-                <td style="padding: 12px 0; color: #f8f4e8; font-size: 14px; border-bottom: 1px solid #25221840;">${order.size}</td>
-              </tr>
-              <tr>
-                <td style="padding: 12px 0; color: #d4a017; font-size: 11px; text-transform: uppercase; letter-spacing: 0.2em; border-bottom: 1px solid #25221840;">Price</td>
-                <td style="padding: 12px 0; color: #d4a017; font-size: 14px; border-bottom: 1px solid #25221840; font-weight: bold;">₹${order.price}</td>
-              </tr>
-            </table>
-            <p style="color: #f8f4e8b0; line-height: 1.8; margin-bottom: 20px;">We'll process your order shortly and keep you updated on the shipping status.</p>
-            <div style="text-align: center; margin: 30px 0;">
-              <a href="${process.env.FRONTEND_URL || 'https://golden-river-perfume.com'}" style="background: #d4a017; color: #0f0e0b; padding: 12px 32px; text-decoration: none; display: inline-block;">Track Order</a>
-            </div>
-            <div style="margin-top: 30px; text-align: center; color: #f8f4e840; font-size: 11px; letter-spacing: 0.1em;">
-              © ${new Date().getFullYear()} Golden River Perfume · Thank you for your purchase
-            </div>
+          <div style="font-family:Arial;padding:20px;max-width:600px;margin:auto;">
+            
+            <h1 style="color:#d4a017;">
+              Golden River Perfume
+            </h1>
+
+            <h2>Order Confirmed ✅</h2>
+
+            <p>Hello <b>${order.name}</b>,</p>
+
+            <p>
+              Your order has been confirmed successfully.
+            </p>
+
+            <img 
+              src="${order.image}" 
+              alt="${order.productName}"
+              style="width:200px;border-radius:10px;margin:20px 0;"
+            />
+
+            <h3>${order.productName}</h3>
+
+            <p><b>Size:</b> ${order.size}</p>
+
+            <p><b>Price:</b> ₹${order.price}</p>
+
+            <p><b>Order ID:</b> ${order.orderId}</p>
+
+            <hr />
+
+            <p>
+              Thank you for shopping with Golden River ❤️
+            </p>
+
           </div>
         `
-      })
-        .then(info => {
-          console.log('✅ Order email sent:', info.messageId);
-        })
-        .catch(err => {
-          console.error('❌ Order email failed:', err.message, err.code);
-        });
-    } else {
-      console.log('⚠️  Email not configured — skipping email send. Check .env file.');
+      });
+
+      console.log("✅ Email sent:", info.response);
+
+    } catch (mailErr) {
+
+      console.log("❌ Mail Error:", mailErr.message);
+
     }
 
+    // ✅ RESPONSE
     res.status(201).json({
       success: true,
       message: "Order placed successfully",
@@ -90,11 +115,14 @@ router.post('/', async (req, res) => {
     });
 
   } catch (err) {
+
     console.error("❌ Error:", err.message);
+
     res.status(500).json({
       success: false,
       message: "Order failed",
     });
+
   }
 });
 

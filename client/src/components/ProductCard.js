@@ -5,8 +5,8 @@ import { useCart } from '../context/CartContext';
 import toast from 'react-hot-toast';
 
 // ✅ VITE FIX
-const API_URL = process.env.REACT_APP_API_URL || "https://golden-river-backend.onrender.com";
-console.log("API URL:", API_URL);
+// const API_URL = process.env.REACT_APP_API_URL || "https://golden-river-backend.onrender.com";
+const API_URL = "http://localhost:5000";
 const ProductCard = ({ product }) => {
   const { addItem } = useCart();
 
